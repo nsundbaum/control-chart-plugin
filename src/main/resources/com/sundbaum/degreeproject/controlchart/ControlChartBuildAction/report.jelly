@@ -1,0 +1,13 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
+         xmlns:l="/lib/layout">
+	<l:layout title="Build #${it.build.number} : ${simName}">
+		<l:breadcrumb title="${testCase.type}" href="."/>
+		<l:side-panel>
+			<st:include it="${it.build}" page="sidepanel.jelly"/>
+		</l:side-panel>
+		<l:main-panel>
+			Hello! <br/>
+			<img src="./graph" width="800" height="600" />
+		</l:main-panel>
+	</l:layout>
+</j:jelly>

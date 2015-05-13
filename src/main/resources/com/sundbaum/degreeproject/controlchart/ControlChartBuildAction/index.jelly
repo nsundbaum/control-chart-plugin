@@ -1,0 +1,46 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
+         xmlns:l="/lib/layout">
+    
+    <j:set var="fmat" value="#.##"/>
+	<j:new var='dec' className='java.text.DecimalFormat' />
+	${dec.applyPattern(fmat)}
+	<j:invoke var='symbols' method='getDecimalFormatSymbols' on='${dec}'/>
+	${symbols.setNaN("NaN")} 
+	${dec.setDecimalFormatSymbols(symbols)}
+	
+	
+	<l:layout title="Build #${it.build.number}">
+		<l:side-panel>
+			<st:include it="${it.build}" page="sidepanel.jelly"/>
+		</l:side-panel>
+		<l:main-panel>
+            <h2>Test Cases:</h2>
+            <table>
+            	<tr>
+            		<td><strong>Test case</strong></td>
+            		<td><strong>Num data points</strong></td>
+            		<td><strong>Num violations</strong></td>
+            		<td><strong>Violation rate</strong></td>
+            		<td><strong>Mean</strong></td>
+            		<td><strong>Baseline mean</strong></td>
+            		<td><strong>Std deviation</strong></td>
+            		<td><strong>Baseline std deviation</strong></td>
+            		<td></td>
+            	</tr>
+                <j:forEach items="${it.testRun.testCases}" var="testCase">
+                    <tr>
+                    	<td>${testCase.type}</td>
+                    	<td>${testCase.numDataPoints}</td>
+                    	<td>${testCase.numViolations}</td>
+                    	<td>${dec.format(testCase.violationRate)}</td>
+                    	<td>${dec.format(testCase.mean)}</td>
+                    	<td>${dec.format(testCase.baseline.mean)}</td>
+                    	<td>${dec.format(testCase.standardDeviation)}</td>
+                    	<td>${dec.format(testCase.baseline.standardDeviation)}</td>
+                    	<td><a href="../${it.getReportURL(testCase.type)}">Report</a></td>
+                    </tr>
+                </j:forEach>
+            </table>
+		</l:main-panel>
+	</l:layout>
+</j:jelly>
