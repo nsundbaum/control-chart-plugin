@@ -1,7 +1,8 @@
 package com.sundbaum.degreeproject.controlchart;
 
+import hudson.model.AbstractBuild;
+
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,22 +14,22 @@ public class TestRun {
 		this.baselines = baselines;
 	}
 	
-	public void addDataPoint(String type, Date timestamp, long responseTime) {
-		TestCase testCase = testCases.get(type);
-		if(testCase == null) {
-			Baseline baseline = baselines.get(type); 
-			testCase = new TestCase(baseline);
-			testCases.put(type, testCase);
-		}
-		testCase.addDataPoint(timestamp, responseTime);
-	}
-	
 	public Collection<TestCase> getTestCases() {
 		return testCases.values();
 	}
 	
 	public TestCase getTestCase(String type) {
-		TestCase testCase = testCases.get(type);
-		return testCase;
+		return testCases.get(type);
+	}
+
+	public void setData(AbstractBuild<?, ?> build, String testCaseName, TestCaseData testCaseData) {
+		TestCase testCase = testCases.get(testCaseName);
+		if(testCase == null) {
+			Baseline baseline = baselines.get(testCaseName); 
+			testCase = new TestCase(baseline);
+			testCases.put(testCaseName, testCase);
+		}
+		
+		testCase.setData(build, testCaseData);
 	}
 }

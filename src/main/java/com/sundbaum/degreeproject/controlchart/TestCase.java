@@ -5,9 +5,9 @@ import hudson.model.AbstractBuild;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.Date;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sundbaum.degreeproject.controlchart.TestCaseData.DataPoint;
 
 public class TestCase {
 	private Baseline baseline;
@@ -18,13 +18,6 @@ public class TestCase {
 	public TestCase(Baseline baseline) {
 		this.baseline = baseline;
 		this.calculator = new OnlineStatsCalculator();
-	}
-	
-	public void addDataPoint(Date timestamp, long responseTime) {
-		calculator.add(responseTime);
-		if(baseline.isViolation(responseTime)) {
-			numViolations++;
-		}
 	}
 	
 	public long getNumViolations() {
@@ -83,7 +76,23 @@ public class TestCase {
 	    return data;
 	}
 	
-	public void saveData(AbstractBuild<?, ?> build, TestCaseData data) {
+	private void add(DataPoint dataPoint) {
+		long responseTime = dataPoint.getY();
+		
+		calculator.add(responseTime);
+		if(baseline.isViolation(responseTime)) {
+			numViolations++;
+		}
+	}
+	
+	public void setData(AbstractBuild<?, ?> build, TestCaseData data) {
+		numViolations = 0;
+		calculator.reset();
+		for(DataPoint dataPoint : data.getDataPoints()) {
+			add(dataPoint);
+		}
+		
+		this.testCaseData = new WeakReference<TestCaseData>(data);
 		File testCaseFile = getTestCaseFile(build);
 		testCaseFile.getParentFile().mkdirs();
 		

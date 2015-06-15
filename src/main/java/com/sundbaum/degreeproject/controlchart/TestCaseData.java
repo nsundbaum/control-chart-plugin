@@ -23,29 +23,29 @@ public class TestCaseData {
 	}
 
 	public static class DataPoint {
-		private double x;
-		private double y;
+		private long x;
+		private long y;
 		
 		public DataPoint() {}
 		
-		public DataPoint(double x, double y) {
+		public DataPoint(long x, long y) {
 			this.x = x;
 			this.y = y;
 		}
 
-		public double getX() {
+		public long getX() {
 			return x;
 		}
 
-		public void setX(double x) {
+		public void setX(long x) {
 			this.x = x;
 		}
 
-		public double getY() {
+		public long getY() {
 			return y;
 		}
 
-		public void setY(double y) {
+		public void setY(long y) {
 			this.y = y;
 		}
 	}

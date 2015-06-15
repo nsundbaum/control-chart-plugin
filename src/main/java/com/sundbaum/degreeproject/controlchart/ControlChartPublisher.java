@@ -10,16 +10,11 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -31,7 +26,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import com.sundbaum.degreeproject.controlchart.TestCaseData.DataPoint;
+import com.sundbaum.degreeproject.controlchart.gatling.GatlingLoadTestParser;
 
 public class ControlChartPublisher extends Recorder {
 	private static final Logger log = Logger.getLogger(ControlChartPublisher.class.getName());
@@ -76,10 +71,7 @@ public class ControlChartPublisher extends Recorder {
     
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-        // This is where you 'build' the project.
-        // Since this is a dummy, we just say 'hello world' and call that a build.
-    	
-    	List<File> simulationLogs = new ArrayList<File>();
+       List<File> simulationLogs = new ArrayList<File>();
     	findSimulationLogs(build.getRootDir(), simulationLogs, listener);
     	if(simulationLogs.isEmpty()) {
     		throw new RuntimeException("No simulation log files found under: " + build.getRootDir());
@@ -89,36 +81,16 @@ public class ControlChartPublisher extends Recorder {
     	listener.getLogger().println("Using baselines: " + baselines);
     	
     	TestRun testRun = new TestRun(new Baselines(baselines));
-    	Map<String, TestCaseData> typeToTestCaseData = new HashMap<String, TestCaseData>();
     	for(File simulationLog : simulationLogs) {
-    		BufferedReader br = new BufferedReader(new FileReader(simulationLog)); 
-    		try {
-    		    String line;
-    		    while ((line = br.readLine()) != null) {
-    		    	String[] elements = line.split("\t+");
-    		    	if("REQUEST".equals(elements[2])) {
-    		    		String status = elements[8];
-    		    		if("ok".equalsIgnoreCase(status)) {
-    		    			String type = elements[3];
-	    		    		long start = Long.parseLong(elements[4]);
-	    		    		long end = Long.parseLong(elements[7]);
-	    		    		long responseTime = end - start;
-	    		    		
-	    		    		testRun.addDataPoint(type, new Date(start), responseTime);
-	    		    		addDataPoint(type, new DataPoint(start,  responseTime), typeToTestCaseData);
-    		    		}
-    		    	}
-    		    }
-    		}
-    		finally {
-    			br.close();
-    		}
-    	}
-    	
-    	for(TestCase testCase : testRun.getTestCases()) {
-    		listener.getLogger().println("===> Violation rate for " + testCase.getType() + ": " + testCase.getViolationRate());
-    		TestCaseData data = typeToTestCaseData.get(testCase.getType());
-    		testCase.saveData(build, data);
+    		LoadTestParser parser = new GatlingLoadTestParser(simulationLog);
+    		
+    		DataCollector dataCollector = new DataCollector();
+    		parser.parse(dataCollector);
+    		
+    		for(String testCaseName : dataCollector.getTestCaseNames()) {
+    			TestCaseData testCaseData = dataCollector.getTestCaseData(testCaseName);
+    			testRun.setData(build, testCaseName, testCaseData);
+        	}
     	}
         
         ControlChartBuildAction ccAction = new ControlChartBuildAction(build, testRun);
@@ -126,20 +98,7 @@ public class ControlChartPublisher extends Recorder {
         
         return true;
     }
-
-    private void addDataPoint(String type, DataPoint dataPoint, Map<String, TestCaseData> typeToTestCaseData) {
-    	TestCaseData data = typeToTestCaseData.get(type);
-    	if(data == null) {
-    		data = new TestCaseData();
-    		typeToTestCaseData.put(type, data);
-    	}
-    	
-    	data.add(dataPoint);
-    }
     
-    // Overridden for better type safety.
-    // If your plugin doesn't really define any property on Descriptor,
-    // you don't have to do this.
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
@@ -155,14 +114,6 @@ public class ControlChartPublisher extends Recorder {
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
-        /**
-         * To persist global configuration information,
-         * simply store it in a field and call save().
-         *
-         * <p>
-         * If you don't want fields to be persisted, use <tt>transient</tt>.
-         */
-        private boolean useFrench;
 
         /**
          * In order to load the persisted global configuration, you have to 
@@ -212,28 +163,13 @@ public class ControlChartPublisher extends Recorder {
          * This human readable name is used in the configuration screen.
          */
         public String getDisplayName() {
-            return "Verify test with control chart";
+            return "Verify load test with control chart";
         }
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-            useFrench = formData.getBoolean("useFrench");
-            // ^Can also use req.bindJSON(this, formData);
-            //  (easier when there are many fields; need set* methods for this, like setUseFrench)
             save();
             return super.configure(req,formData);
-        }
-
-        /**
-         * This method returns true if the global configuration says we should speak French.
-         *
-         * The method name is bit awkward because global.jelly calls this method to determine
-         * the initial state of the checkbox by the naming convention.
-         */
-        public boolean getUseFrench() {
-            return useFrench;
         }
     }
 }

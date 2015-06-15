@@ -6,7 +6,6 @@
 			<st:include it="${it.build}" page="sidepanel.jelly"/>
 		</l:side-panel>
 		<l:main-panel>
-			Hello! <br/>
 			<img src="./graph" width="800" height="600" />
 		</l:main-panel>
 	</l:layout>
